@@ -51,11 +51,14 @@ def generate_pdf():
                 text_entries=text_entries
             )
 
-            # Generate preview image
+            # Generate preview image (optimized)
             with fitz.open(output_pdf_path) as doc:
                 page = doc.load_page(0)
-                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x scale
-                img_bytes = pix.tobytes("png")
+                # 🔹 Use normal scale (1x) or 1.5x for balance
+                pix = page.get_pixmap(matrix=fitz.Matrix(1, 1))
+                # 🔹 Export as JPEG instead of PNG (much smaller)
+                img_bytes = pix.tobytes("jpeg")
+                # img_bytes = pix.tobytes("png")
 
             # Read PDF bytes
             with open(output_pdf_path, 'rb') as f:
