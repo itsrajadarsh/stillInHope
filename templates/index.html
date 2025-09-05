@@ -1,0 +1,303 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Still in Hope</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+    <!-- Respectful Note -->
+    <div class="alert alert-info small" role="alert" style="font-size: 0.9rem;">
+        <strong>Respectful Note to Hon'ble Officials:</strong>
+        This platform has been developed independently by a concerned citizen, with the sole objective of <strong>facilitating the constructive reporting of civic issues</strong> such as potholes, waste accumulation, and public infrastructure concerns.<br>
+        We hold the utmost respect for all government departments and public officials. This tool is intended to <strong>encourage civic engagement and support governance efforts through transparency and public awareness</strong>.<br>
+        Any satirical or humorous elements are included in <strong>good faith</strong> and are not intended to offend, defame, or discredit any individual, office, or institution. The overarching purpose is to foster collaboration, not criticism. 🙏<br><br>
+        <em>For any concerns, clarifications, or takedown requests, Hon'ble officials may kindly contact us at <a href="mailto:temp8varr@gmail.com">temp8varr@gmail.com</a>. We assure prompt and respectful action.</em>
+    </div>
+
+
+
+    <h2 class="text-center mb-4">Disaster Report Generator</h2>
+
+    <form id="reportForm" enctype="multipart/form-data">
+        <!-- Name -->
+        <div class="mb-3">
+            <label for="name" class="form-label">Your Name:</label>
+            <input type="text" id="name" name="name" class="form-control" required />
+        </div>
+
+        <!-- Disaster Type -->
+        <div class="mb-3">
+            <label for="disaster" class="form-label">Type of Disaster:</label>
+            <select id="disaster" name="disaster" class="form-select" required>
+                <option value="Pothole">Pothole</option>
+                <option value="Damaged Road Surface">Damaged Road Surface</option>
+                <option value="Road Crack">Road Crack</option>
+                <option value="Broken Streetlight">Broken Streetlight</option>
+                <option value="Traffic Signal Fault">Traffic Signal Fault</option>
+                <option value="Roadside Garbage">Roadside Garbage</option>
+                <option value="Illegal Dumping">Illegal Dumping</option>
+                <option value="Water Logging">Water Logging</option>
+                <option value="Open Manhole">Open Manhole</option>
+                <option value="Blocked Drain">Blocked Drain</option>
+                <option value="Roadside Encroachment">Roadside Encroachment</option>
+                <option value="Damaged Road Signage">Damaged Road Signage</option>
+                <option value="Fallen Tree On Road">Fallen Tree On Road</option>
+                <option value="Road Accident Hazard">Road Accident Hazard</option>
+                <option value="Others">Others</option>
+            </select>
+        </div>
+
+
+        <!-- Image Upload -->
+        <div class="mb-3">
+            <label for="photo" class="form-label">Upload/Take Photo:</label>
+            <input type="file" id="photo" name="photo" class="form-control" accept="image/*" capture="environment" required />
+        </div>
+
+        <!-- Location -->
+        <div class="mb-3">
+            <label for="location" class="form-label">Location:</label>
+            <input type="text" id="location" name="location" class="form-control" required />
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="getLocation()">Use My Location</button>
+        </div>
+
+<!--        <button type="submit" class="btn btn-primary w-100">Generate PDF</button>-->
+<!--        &lt;!&ndash; Tweet Button &ndash;&gt;-->
+<!--        <button id="tweetBtn" type="button" class="btn btn-info w-100 mt-2" style="color:white;">-->
+<!--            🐦 Tweet Report on X-->
+<!--        </button>-->
+        <button type="submit" class="btn btn-primary w-100">Generate PDF</button>
+    </form>
+
+    <div id="preview" class="mt-4 text-center"></div>
+
+    <div id="downloadButtons" class="mt-3 text-center" style="display:none;">
+        <button id="downloadPdfBtn" class="btn btn-success me-2">Download PDF</button>
+        <button id="downloadImgBtn" class="btn btn-secondary">Download Image</button>
+        <button id="tweetBtn" class="btn btn-info" style="color:white;">🐦 Tweet Report</button>
+    </div>
+
+    <div id="status" class="mt-4 text-center"></div>
+</div>
+
+<script>
+document.getElementById('reportForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    formData.append('datetime', new Date().toLocaleString());
+
+    const statusDiv = document.getElementById('preview');
+    statusDiv.innerHTML = "Generating PDF... please wait.";
+
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Failed to generate report');
+
+        const data = await response.json();
+
+        // Show preview image
+        const img = document.createElement('img');
+        img.src = 'data:image/png;base64,' + data.image;
+        img.alt = "PDF preview image";
+        img.style.maxWidth = "100%";
+        img.style.border = "1px solid #ccc";
+        img.style.borderRadius = "8px";
+
+        statusDiv.innerHTML = "";
+        statusDiv.appendChild(img);
+
+        // Show download buttons
+        const downloadButtons = document.getElementById('downloadButtons');
+        downloadButtons.style.display = 'block';
+
+        // Download PDF
+        document.getElementById('downloadPdfBtn').onclick = () => {
+            const pdfBlob = b64toBlob(data.pdf, 'application/pdf');
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename_pdf;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // Download Image
+        document.getElementById('downloadImgBtn').onclick = () => {
+            const imgBlob = b64toBlob(data.image, 'image/png');
+            const url = URL.createObjectURL(imgBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename_img;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+    } catch (err) {
+        statusDiv.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
+    }
+});
+
+// Helper function: base64 to Blob
+function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+
+    for(let offset = 0; offset < byteCharacters.length; offset += sliceSize){
+        const slice = byteCharacters.slice(offset, offset + sliceSize);
+        const byteNumbers = new Array(slice.length);
+        for(let i=0; i<slice.length; i++){
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, {type: contentType});
+}
+
+function getLocation() {
+    const locInput = document.getElementById('location');
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude.toFixed(5);
+                const lon = pos.coords.longitude.toFixed(5);
+                locInput.value = `Lat: ${lat}, Lon: ${lon}`;
+            },
+            (err) => {
+                alert("Unable to retrieve your location.");
+            }
+        );
+    } else {
+        alert("Geolocation is not supported by your browser.");
+    }
+}
+
+</script>
+
+<script>
+function encodeTweet(text) {
+    return encodeURIComponent(text);
+}
+
+document.getElementById('tweetBtn').addEventListener('click', () => {
+    const name = document.getElementById('name').value.trim();
+    const disaster = document.getElementById('disaster').value;
+    const location = document.getElementById('location').value.trim();
+    const datetime = new Date().toLocaleString();
+
+    if (!name || !location) {
+        alert("Please fill in your name and location before tweeting.");
+        return;
+    }
+
+    // Tweet text
+    let tweetText =
+      `Reporting civic issue:\n` +
+      `Issue: ${disaster} – captured in all its neglected glory.\n` +
+      `Location: ${location} – soon to be renamed “CM Nagar” if fixed.\n` +
+      `Date & Time: ${datetime} – because history deserves a timestamp.\n\n` +
+      `@PMOIndia @MoRTHIndia #CivicIssueReport #SelfieWithPothole`;
+
+
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeTweet(tweetText)}`;
+
+    // Open Twitter composer in new tab
+    alert("✅ Tweet window will be opened. Please download report file and attach media.");
+    window.open(tweetUrl, '_blank');
+});
+</script>
+
+
+<!--<script>-->
+<!--    function getLocation() {-->
+<!--        if (navigator.geolocation) {-->
+<!--            navigator.geolocation.getCurrentPosition(-->
+<!--                position => {-->
+<!--                    const coords = `${position.coords.latitude}, ${position.coords.longitude}`;-->
+<!--                    document.getElementById('location').value = coords;-->
+<!--                },-->
+<!--                () => {-->
+<!--                    alert("Unable to get location.");-->
+<!--                }-->
+<!--            );-->
+<!--        } else {-->
+<!--            alert("Geolocation not supported by your browser.");-->
+<!--        }-->
+<!--    }-->
+
+<!--    document.getElementById('reportForm').addEventListener('submit', async function (e) {-->
+<!--        e.preventDefault();-->
+
+<!--        const formData = new FormData(this);-->
+
+<!--        // Auto-append current date and time-->
+<!--        formData.append('datetime', new Date().toLocaleString());-->
+
+<!--        const response = await fetch('/generate', {-->
+<!--            method: 'POST',-->
+<!--            body: formData,-->
+<!--        });-->
+
+<!--        if (response.ok) {-->
+<!--            const blob = await response.blob();-->
+<!--            const url = window.URL.createObjectURL(blob);-->
+
+<!--            const a = document.createElement('a');-->
+<!--            a.href = url;-->
+<!--            a.download = "report.pdf";-->
+<!--            a.click();-->
+<!--            URL.revokeObjectURL(url);-->
+
+<!--            document.getElementById('status').innerHTML = "✅ PDF downloaded!";-->
+<!--        } else {-->
+<!--            document.getElementById('status').innerHTML = "❌ Failed to generate PDF.";-->
+<!--        }-->
+<!--    });-->
+<!--</script>-->
+
+<!--<script>-->
+<!--    // Function to URL encode text for tweet-->
+<!--    function encodeTweet(text) {-->
+<!--        return encodeURIComponent(text);-->
+<!--    }-->
+
+<!--    document.getElementById('tweetBtn').addEventListener('click', async () => {-->
+<!--        const name = document.getElementById('name').value.trim();-->
+<!--        const disaster = document.getElementById('disaster').value;-->
+<!--        const location = document.getElementById('location').value.trim();-->
+<!--        const datetime = new Date().toLocaleString();-->
+
+<!--        if (!name || !location) {-->
+<!--            alert("Please fill in your name and location before tweeting.");-->
+<!--            return;-->
+<!--        }-->
+
+<!--        // Compose tweet text-->
+<!--        let tweetText =-->
+<!--            `Reporting a civic issue:\n` +-->
+<!--            `Name: ${name}\n` +-->
+<!--            `Issue: ${disaster}\n` +-->
+<!--            `Location: ${location}\n` +-->
+<!--            `Date & Time: ${datetime}\n\n` +-->
+<!--            `@MoRTH_India #CivicIssueReport\n` +-->
+<!--            `Generated via Civic Report Tool`;-->
+
+<!--        const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeTweet(tweetText)}`;-->
+
+<!--        // Open tweet composer in new tab-->
+<!--        window.open(tweetUrl, '_blank');-->
+<!--    });-->
+<!--</script>-->
+
+</body>
+</html>
