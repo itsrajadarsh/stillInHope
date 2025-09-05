@@ -31,7 +31,8 @@ def crop_image_to_aspect_ratio(image_path, target_width, target_height, output_t
 def insert_image_and_text_into_pdf(pdf_path, image_path, output_path,
                                    page_number, x, y, width, height, text_entries):
     """Insert a cropped image + text entries into a PDF template."""
-    cropped_image_path = crop_image_to_aspect_ratio(image_path, width, height)
+    # cropped_image_path = crop_image_to_aspect_ratio(image_path, width, height)
+    cropped_image_path = crop_and_resize_image(image_path, width, height)
 
     pdf_doc = fitz.open(pdf_path)
     if page_number < 0 or page_number >= len(pdf_doc):
@@ -55,3 +56,29 @@ def insert_image_and_text_into_pdf(pdf_path, image_path, output_path,
 
     pdf_doc.save(output_path, garbage=4, clean=True)
     pdf_doc.close()
+
+def crop_and_resize_image(image_path, target_width, target_height, output_temp_path="temp_cropped_image.jpg"):
+    with Image.open(image_path) as img:
+        img_width, img_height = img.size
+        target_ratio = target_width / target_height
+        img_ratio = img_width / img_height
+
+        # Crop to aspect ratio
+        if img_ratio > target_ratio:
+            new_width = int(img_height * target_ratio)
+            left = (img_width - new_width) // 2
+            box = (left, 0, left + new_width, img_height)
+        else:
+            new_height = int(img_width / target_ratio)
+            top = (img_height - new_height) // 2
+            box = (0, top, img_width, top + new_height)
+
+        cropped_img = img.crop(box)
+
+        # 🔹 Resize to target dimensions
+        resized_img = cropped_img.resize((target_width, target_height), Image.LANCZOS)
+
+        # 🔹 Save with compression (quality=60 keeps it light but clear)
+        resized_img.save(output_temp_path, format="JPEG", quality=60, optimize=True)
+
+    return output_temp_path
