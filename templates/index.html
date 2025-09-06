@@ -42,7 +42,7 @@
         >
       </div>
 
-      <h2 class="text-center mb-4">Disaster Report Generator</h2>
+      <h2 class="text-center mb-4">Epic Fail Report Maker</h2>
 
       <form id="reportForm" enctype="multipart/form-data">
         <!-- Name -->
@@ -88,7 +88,6 @@
             name="photo"
             class="form-control"
             accept="image/*"
-            capture="environment"
             required
           />
         </div>
@@ -157,7 +156,14 @@
           formData.append("datetime", new Date().toLocaleString());
 
           const statusDiv = document.getElementById("preview");
-          statusDiv.innerHTML = "Generating PDF... please wait.";
+
+          // Better loading UI
+          statusDiv.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center flex-column">
+            <div class="spinner-border text-primary mb-2" role="status" style="width:3rem;height:3rem;"></div>
+            <p class="text-muted">⏳ Please wait... generating your PDF report</p>
+        </div>
+    `;
 
           try {
             const response = await fetch("/generate", {
@@ -171,11 +177,12 @@
 
             // Show preview image
             const img = document.createElement("img");
-            img.src = "data:image/png;base64," + data.image;
+            img.src = "data:image/jpeg;base64," + data.image;
             img.alt = "PDF preview image";
             img.style.maxWidth = "100%";
             img.style.border = "1px solid #ccc";
             img.style.borderRadius = "8px";
+            img.style.boxShadow = "0 0 10px rgba(0,0,0,0.1)";
 
             statusDiv.innerHTML = "";
             statusDiv.appendChild(img);
@@ -183,6 +190,9 @@
             // Show download buttons
             const downloadButtons = document.getElementById("downloadButtons");
             downloadButtons.style.display = "block";
+
+            // Auto scroll to preview
+            statusDiv.scrollIntoView({ behavior: "smooth", block: "start" });
 
             // Download PDF
             document.getElementById("downloadPdfBtn").onclick = () => {
@@ -197,7 +207,7 @@
 
             // Download Image
             document.getElementById("downloadImgBtn").onclick = () => {
-              const imgBlob = b64toBlob(data.image, "image/png");
+              const imgBlob = b64toBlob(data.image, "image/jpeg");
               const url = URL.createObjectURL(imgBlob);
               const a = document.createElement("a");
               a.href = url;
@@ -206,7 +216,7 @@
               URL.revokeObjectURL(url);
             };
           } catch (err) {
-            statusDiv.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
+            statusDiv.innerHTML = `<span style="color:red;">❌ Error: ${err.message}</span>`;
           }
         });
 
@@ -366,5 +376,12 @@
     <!--        window.open(tweetUrl, '_blank');-->
     <!--    });-->
     <!--</script>-->
+
+    <script>
+      // Ping server every 10 minutes to keep it awake
+      setInterval(() => {
+        fetch("/", { cache: "no-store" }).catch(() => {});
+      }, 10 * 60 * 1000); // 10 minutes
+    </script>
   </body>
 </html>

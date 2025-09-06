@@ -43,7 +43,7 @@ def generate_pdf():
 
             # Insert image + text into certificate template
             insert_image_and_text_into_pdf(
-                pdf_path="certificate.pdf",   # base template
+                pdf_path="certificate_new.pdf",   # base template
                 image_path=temp_img_path,
                 output_path=output_pdf_path,
                 page_number=0,
