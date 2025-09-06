@@ -4,6 +4,7 @@ import tempfile, os, base64
 import fitz  # PyMuPDF
 from datetime import datetime
 from your_pdf_script import insert_image_and_text_into_pdf
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -26,9 +27,12 @@ def generate_pdf():
             return jsonify({'error': 'No photo uploaded'}), 400
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Save uploaded image
-            temp_img_path = os.path.join(tmpdir, 'photo.jpg')
-            photo.save(temp_img_path)
+            # Save uploaded image as JPEG using Pillow
+            photo_path = os.path.join(tmpdir, 'photo_input.jpg')
+            with Image.open(photo) as img:
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                img.save(photo_path, format="JPEG", quality=85, optimize=True)
 
             # Output PDF path
             output_pdf_path = os.path.join(tmpdir, 'output.pdf')
@@ -44,7 +48,7 @@ def generate_pdf():
             # Insert image + text into certificate template
             insert_image_and_text_into_pdf(
                 pdf_path="certificate_new.pdf",   # base template
-                image_path=temp_img_path,
+                image_path=photo_path,
                 output_path=output_pdf_path,
                 page_number=0,
                 x=230, y=230, width=350, height=280,
@@ -54,11 +58,8 @@ def generate_pdf():
             # Generate preview image (optimized)
             with fitz.open(output_pdf_path) as doc:
                 page = doc.load_page(0)
-                # 🔹 Use normal scale (1x) or 1.5x for balance
                 pix = page.get_pixmap(matrix=fitz.Matrix(1, 1))
-                # 🔹 Export as JPEG instead of PNG (much smaller)
                 img_bytes = pix.tobytes("jpeg")
-                # img_bytes = pix.tobytes("png")
 
             # Read PDF bytes
             with open(output_pdf_path, 'rb') as f:

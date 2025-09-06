@@ -4,28 +4,32 @@ from PIL import Image
 import os
 
 
-def crop_image_to_aspect_ratio(image_path, target_width, target_height, output_temp_path="temp_cropped_image.png"):
-    """Crop input image to match target aspect ratio before placing into PDF."""
+def crop_image_to_aspect_ratio(image_path, target_width, target_height, output_temp_path="temp_cropped_image.jpg"):
     with Image.open(image_path) as img:
         img_width, img_height = img.size
         target_ratio = target_width / target_height
         img_ratio = img_width / img_height
 
         if img_ratio > target_ratio:
-            # Image too wide → crop width
             new_width = int(img_height * target_ratio)
             left = (img_width - new_width) // 2
             box = (left, 0, left + new_width, img_height)
         else:
-            # Image too tall → crop height
             new_height = int(img_width / target_ratio)
             top = (img_height - new_height) // 2
             box = (0, top, img_width, top + new_height)
 
         cropped_img = img.crop(box)
-        cropped_img.save(output_temp_path)
+
+        # 🔥 Ensure no alpha channel (convert RGBA → RGB)
+        if cropped_img.mode in ("RGBA", "P"):
+            cropped_img = cropped_img.convert("RGB")
+
+        # Always save as JPEG
+        cropped_img.save(output_temp_path, format="JPEG", quality=85, optimize=True)
 
     return output_temp_path
+
 
 
 def insert_image_and_text_into_pdf(pdf_path, image_path, output_path,
